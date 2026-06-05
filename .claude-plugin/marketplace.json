@@ -6,7 +6,7 @@
   "plugins": [
     {
       "name": "coaching-call-clipper",
-      "source": "./",
+      "source": "./plugins/coaching-call-clipper",
       "description": "Turn long call recordings into standalone, post-ready clips: one per problem solved or idea taught. Local transcription + Claude segment selection + ffmpeg export, no API keys.",
       "version": "1.0.0"
     }
