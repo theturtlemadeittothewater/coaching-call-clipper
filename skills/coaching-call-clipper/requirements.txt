@@ -1,0 +1,10 @@
+# Core transcription dependency. Pulls ctranslate2, av, tokenizers,
+# huggingface_hub, onnxruntime and numpy as transitive dependencies.
+# Runs on CPU everywhere; uses an NVIDIA GPU when the CUDA wheels below are present.
+faster-whisper>=1.2.1
+
+# GPU acceleration (NVIDIA, Windows/Linux only). These are installed conditionally
+# by setup.ps1 / setup.sh when an NVIDIA GPU is detected. They have no macOS wheels,
+# so they are intentionally NOT listed as hard requirements here:
+#   nvidia-cublas-cu12
+#   nvidia-cudnn-cu12

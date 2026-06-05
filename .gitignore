@@ -1,0 +1,32 @@
+# Python virtual environments (the skill builds one at ~/.coaching-call-clipper/.venv;
+# never commit a venv, the paths are machine-specific)
+.venv/
+**/.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Media and per-call working files (user content, never part of the template)
+*.mp4
+*.mov
+*.mkv
+*.webm
+*.avi
+*.m4v
+*.wav
+*.mp3
+*.m4a
+*.aac
+*.flac
+calls/
+
+# Pipeline outputs (regenerated per call)
+*.transcript.json
+segments.json
+clips/
+*.zip
+*.fcpxml
+
+# OS cruft
+.DS_Store
+Thumbs.db

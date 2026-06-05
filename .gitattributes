@@ -1,0 +1,11 @@
+# Normalize line endings so cross-platform installs work.
+* text=auto
+
+# Shell scripts must use LF or bash on macOS/Linux fails with a \r error.
+*.sh text eol=lf
+
+# Python is cleanest with LF everywhere.
+*.py text eol=lf
+
+# PowerShell stays CRLF on Windows.
+*.ps1 text eol=crlf
