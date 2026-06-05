@@ -2,13 +2,21 @@
 """Transcribe a video/audio file to a word-level-timestamped transcript JSON.
 
 Runs locally with faster-whisper. No API keys, nothing leaves the machine.
-Uses the GPU (CUDA) when available and falls back to CPU automatically.
+Uses the GPU (CUDA) when available and falls back to CPU automatically. On a Mac
+there is no NVIDIA GPU, so it runs on CPU (int8); pick a faster model with --model
+(see below) to keep that practical.
 
 Usage:
-    transcribe.py <video_or_audio_path> [output_json_path]
+    transcribe.py <video_or_audio_path> [output_json_path] [--model NAME]
 
 If output_json_path is omitted, writes <input_basename>.transcript.json next to
 the input file.
+
+--model picks the faster-whisper model (auto-downloaded from Hugging Face on
+first use). Default "large-v3" (best quality). On CPU / Mac, "turbo" is much
+faster with quality close enough for clip selection; "distil-large-v3", "medium",
+"small", "base", and "tiny" trade more quality for more speed. The default can
+also be set with the CLIPPER_WHISPER_MODEL environment variable.
 
 Output JSON shape (the contract the export scripts read):
 {
@@ -23,13 +31,14 @@ Output JSON shape (the contract the export scripts read):
 }
 """
 
+import argparse
 import json
 import os
 import subprocess
 import sys
 import tempfile
 
-MODEL_SIZE = "large-v3"
+DEFAULT_MODEL = os.environ.get("CLIPPER_WHISPER_MODEL", "large-v3")
 VIDEO_EXTENSIONS = {".mp4", ".mov", ".webm", ".mkv", ".avi", ".m4v"}
 AUDIO_EXTENSIONS = {".mp3", ".wav", ".m4a", ".aac", ".flac", ".ogg", ".opus", ".wma"}
 
@@ -81,7 +90,7 @@ def extract_audio(video_path: str) -> str:
 def register_cuda_dlls() -> None:
     """Windows: pip-installed nvidia CUDA libs (cublas, cudnn) aren't on the DLL
     search path. Register each nvidia/*/bin dir so ctranslate2 can load them.
-    No-op on machines without those packages (e.g. CPU-only / macOS)."""
+    No-op on machines without those packages (for example CPU-only or macOS)."""
     if sys.platform != "win32":
         return
     nvidia_root = os.path.join(sys.prefix, "Lib", "site-packages", "nvidia")
@@ -94,25 +103,34 @@ def register_cuda_dlls() -> None:
             os.environ["PATH"] = bin_dir + os.pathsep + os.environ.get("PATH", "")
 
 
-def load_model():
-    """Try GPU first, fall back to CPU with a clear note."""
+def load_model(model_size: str):
+    """Try GPU first, fall back to CPU with a clear note. On Mac the GPU attempt
+    fails and it lands on CPU (int8), which ctranslate2 supports on Apple Silicon."""
     register_cuda_dlls()
     from faster_whisper import WhisperModel
 
     try:
-        log(f"Loading {MODEL_SIZE} on GPU (CUDA, float16)...")
-        return WhisperModel(MODEL_SIZE, device="cuda", compute_type="float16")
+        log(f"Loading {model_size} on GPU (CUDA, float16)...")
+        return WhisperModel(model_size, device="cuda", compute_type="float16")
     except Exception as exc:
-        log(f"GPU load failed ({exc}); falling back to CPU (int8). This will be slow.")
-        return WhisperModel(MODEL_SIZE, device="cpu", compute_type="int8")
+        log(f"GPU not available ({exc}); using CPU (int8). On a Mac this is normal; "
+            f"transcription is slower, so consider --model turbo.")
+        return WhisperModel(model_size, device="cpu", compute_type="int8")
 
 
 def main() -> None:
-    if len(sys.argv) < 2:
-        log("Usage: transcribe.py <video_or_audio_path> [output_json_path]")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(
+        description="Transcribe a video/audio file to a word-level-timestamped transcript JSON.",
+    )
+    parser.add_argument("input", help="Path to the video or audio file.")
+    parser.add_argument("output", nargs="?", default=None,
+                        help="Output JSON path (default: <input>.transcript.json).")
+    parser.add_argument("--model", default=DEFAULT_MODEL,
+                        help="faster-whisper model: large-v3 (default), turbo (fast, good for CPU/Mac), "
+                             "distil-large-v3, medium, small, base, tiny.")
+    args = parser.parse_args()
 
-    input_path = sys.argv[1]
+    input_path = args.input
     if not os.path.exists(input_path):
         log(f"File not found: {input_path}")
         sys.exit(1)
@@ -122,9 +140,7 @@ def main() -> None:
         log(f"Unsupported file type: {ext}")
         sys.exit(1)
 
-    output_path = sys.argv[2] if len(sys.argv) > 2 else (
-        os.path.splitext(input_path)[0] + ".transcript.json"
-    )
+    output_path = args.output or (os.path.splitext(input_path)[0] + ".transcript.json")
 
     offset = get_audio_offset(input_path)
     if offset:
@@ -139,7 +155,7 @@ def main() -> None:
         else:
             audio_path = input_path
 
-        model = load_model()
+        model = load_model(args.model)
         log("Transcribing (word-level timestamps, VAD filter on)...")
         segments_gen, info = model.transcribe(
             audio_path,
@@ -173,7 +189,7 @@ def main() -> None:
             "status": "done",
             "duration": duration,
             "language": info.language or "en",
-            "model": f"faster-whisper:{MODEL_SIZE}",
+            "model": f"faster-whisper:{args.model}",
             "transcript": transcript,
         }
         with open(output_path, "w", encoding="utf-8") as f:

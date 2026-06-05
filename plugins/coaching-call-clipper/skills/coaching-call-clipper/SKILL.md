@@ -46,7 +46,8 @@ Install these once on the user's machine:
   `winget install Gyan.FFmpeg` or `choco install ffmpeg` (Windows),
   `brew install ffmpeg` (macOS), or `sudo apt install ffmpeg` (Debian/Ubuntu).
 - **A GPU is optional.** An NVIDIA GPU makes transcription fast (minutes); without
-  one it falls back to CPU and is slower but works. macOS runs on CPU.
+  one it runs on CPU, which is slower but works. A Mac (Apple Silicon included)
+  runs on CPU; use `--model turbo` in Step 1 to keep that practical.
 
 ## Step 0: Make sure the environment is ready
 
@@ -80,9 +81,27 @@ Run every Python command below with `VENV_PY`, not the system `python`.
 ```
 
 Writes `call.transcript.json` next to the input. The first run downloads the
-Whisper model (about 1.5 GB) once. On an NVIDIA GPU a long call takes minutes; on
-CPU it takes longer. If the user already has a word-level transcript in the
-contract shape (see the transcribe.py docstring), you can skip this stage.
+chosen model once.
+
+**Pick the model for the machine** with `--model <name>`:
+
+- **NVIDIA GPU (Windows/Linux):** the default `large-v3` is fine; a long call
+  takes minutes.
+- **Mac, or any machine with no NVIDIA GPU:** transcription runs on CPU, so use
+  `--model turbo`. It is far faster than `large-v3` on CPU and the quality is more
+  than enough for choosing clip boundaries. `--model small` is faster still for a
+  rough first pass.
+
+Example on a Mac:
+
+```
+<VENV_PY> "<SKILL_DIR>/scripts/transcribe.py" "<path-to-call.mp4>" --model turbo
+```
+
+If the user already has a word-level transcript in the contract shape (see the
+transcribe.py docstring), skip this stage. That is the fastest path on any machine
+when a transcript already exists, for example one exported by a Mac transcription
+app that includes word timestamps.
 
 ## Step 2: Select and segment
 

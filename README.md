@@ -25,8 +25,9 @@ You install these once on your own machine:
   - Windows: `winget install Gyan.FFmpeg` or `choco install ffmpeg`
   - macOS: `brew install ffmpeg`
   - Debian / Ubuntu: `sudo apt install ffmpeg`
-- An NVIDIA GPU is optional. With one, transcription takes minutes; without one it
-  falls back to CPU, which works but is slower. macOS runs on CPU.
+- An NVIDIA GPU is optional. With one, transcription takes minutes. Without one,
+  including on any Mac, it runs on CPU and uses a faster model to compensate (see
+  the Mac section below).
 
 ## Install as a Claude Code plugin
 
@@ -74,6 +75,22 @@ bash plugins/coaching-call-clipper/skills/coaching-call-clipper/setup.sh
 
 The environment lives in your home folder, not inside the skill, so it survives
 plugin updates.
+
+## On a Mac
+
+This works on Macs, both Apple Silicon (M1, M2, M3, M4) and Intel. Install is the
+same as above: `brew install ffmpeg`, then either the plugin install or the setup
+script.
+
+Macs have no NVIDIA GPU, so transcription runs on the CPU. To keep that quick, the
+skill uses the faster `turbo` model on a Mac instead of `large-v3`; the quality is
+more than enough to pick clip boundaries. If you run the transcriber yourself, add
+`--model turbo` (or `--model small` for a rougher, faster pass). Cutting the clips
+with ffmpeg runs at the same speed everywhere.
+
+Already have a transcript from another tool that includes word-level timestamps?
+Drop it in and skip transcription entirely. That is the fastest path on any machine
+when a transcript already exists.
 
 ## Use it
 

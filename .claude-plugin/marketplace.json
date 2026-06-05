@@ -8,7 +8,7 @@
       "name": "coaching-call-clipper",
       "source": "./plugins/coaching-call-clipper",
       "description": "Turn long call recordings into standalone, post-ready clips: one per problem solved or idea taught. Local transcription + Claude segment selection + ffmpeg export, no API keys.",
-      "version": "1.0.0"
+      "version": "1.1.0"
     }
   ]
 }
